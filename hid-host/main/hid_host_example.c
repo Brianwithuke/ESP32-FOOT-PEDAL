@@ -62,9 +62,7 @@ typedef struct {
  * @brief HID Protocol string names
  */
 static const char *hid_proto_name_str[] = {
-    "NONE",
     "KEYBOARD",
-    "MOUSE"
 };
 
 /**
@@ -87,7 +85,7 @@ typedef struct {
 /**
  * @brief Scancode to ascii table
  */
-const uint8_t keycode2ascii [57][2] = {
+const uint8_t keycode2ascii [7][2] = {
     {0, 0}, /* HID_KEY_NO_PRESS        */
     {0, 0}, /* HID_KEY_ROLLOVER        */
     {0, 0}, /* HID_KEY_POST_FAIL       */
@@ -95,56 +93,6 @@ const uint8_t keycode2ascii [57][2] = {
     {'a', 'A'}, /* HID_KEY_A               */
     {'b', 'B'}, /* HID_KEY_B               */
     {'c', 'C'}, /* HID_KEY_C               */
-    {'d', 'D'}, /* HID_KEY_D               */
-    {'e', 'E'}, /* HID_KEY_E               */
-    {'f', 'F'}, /* HID_KEY_F               */
-    {'g', 'G'}, /* HID_KEY_G               */
-    {'h', 'H'}, /* HID_KEY_H               */
-    {'i', 'I'}, /* HID_KEY_I               */
-    {'j', 'J'}, /* HID_KEY_J               */
-    {'k', 'K'}, /* HID_KEY_K               */
-    {'l', 'L'}, /* HID_KEY_L               */
-    {'m', 'M'}, /* HID_KEY_M               */
-    {'n', 'N'}, /* HID_KEY_N               */
-    {'o', 'O'}, /* HID_KEY_O               */
-    {'p', 'P'}, /* HID_KEY_P               */
-    {'q', 'Q'}, /* HID_KEY_Q               */
-    {'r', 'R'}, /* HID_KEY_R               */
-    {'s', 'S'}, /* HID_KEY_S               */
-    {'t', 'T'}, /* HID_KEY_T               */
-    {'u', 'U'}, /* HID_KEY_U               */
-    {'v', 'V'}, /* HID_KEY_V               */
-    {'w', 'W'}, /* HID_KEY_W               */
-    {'x', 'X'}, /* HID_KEY_X               */
-    {'y', 'Y'}, /* HID_KEY_Y               */
-    {'z', 'Z'}, /* HID_KEY_Z               */
-    {'1', '!'}, /* HID_KEY_1               */
-    {'2', '@'}, /* HID_KEY_2               */
-    {'3', '#'}, /* HID_KEY_3               */
-    {'4', '$'}, /* HID_KEY_4               */
-    {'5', '%'}, /* HID_KEY_5               */
-    {'6', '^'}, /* HID_KEY_6               */
-    {'7', '&'}, /* HID_KEY_7               */
-    {'8', '*'}, /* HID_KEY_8               */
-    {'9', '('}, /* HID_KEY_9               */
-    {'0', ')'}, /* HID_KEY_0               */
-    {KEYBOARD_ENTER_MAIN_CHAR, KEYBOARD_ENTER_MAIN_CHAR}, /* HID_KEY_ENTER           */
-    {0, 0}, /* HID_KEY_ESC             */
-    {'\b', 0}, /* HID_KEY_DEL             */
-    {0, 0}, /* HID_KEY_TAB             */
-    {' ', ' '}, /* HID_KEY_SPACE           */
-    {'-', '_'}, /* HID_KEY_MINUS           */
-    {'=', '+'}, /* HID_KEY_EQUAL           */
-    {'[', '{'}, /* HID_KEY_OPEN_BRACKET    */
-    {']', '}'}, /* HID_KEY_CLOSE_BRACKET   */
-    {'\\', '|'}, /* HID_KEY_BACK_SLASH      */
-    {'\\', '|'}, /* HID_KEY_SHARP           */  // HOTFIX: for NonUS Keyboards repeat HID_KEY_BACK_SLASH
-    {';', ':'}, /* HID_KEY_COLON           */
-    {'\'', '"'}, /* HID_KEY_QUOTE           */
-    {'`', '~'}, /* HID_KEY_TILDE           */
-    {',', '<'}, /* HID_KEY_LESS            */
-    {'.', '>'}, /* HID_KEY_GREATER         */
-    {'/', '?'} /* HID_KEY_SLASH           */
 };
 
 /**
@@ -159,12 +107,8 @@ static void hid_print_new_device_report_header(hid_protocol_t proto)
     if (prev_proto_output != proto) {
         prev_proto_output = proto;
         printf("\r\n");
-        if (proto == HID_PROTOCOL_MOUSE) {
-            printf("Mouse\r\n");
-        } else if (proto == HID_PROTOCOL_KEYBOARD) {
+        if (proto == HID_PROTOCOL_KEYBOARD) {
             printf("Keyboard\r\n");
-        } else {
-            printf("Generic\r\n");
         }
         fflush(stdout);
     }
@@ -246,9 +190,8 @@ static void key_event_callback(key_event_t *key_event)
     if (KEY_STATE_PRESSED == key_event->state) {
         if (hid_keyboard_get_char(key_event->modifier,
                                   key_event->key_code, &key_char)) {
-
+                                      
             hid_keyboard_print_char(key_char);
-
         }
     }
 }
@@ -313,35 +256,6 @@ static void hid_host_keyboard_report_callback(const uint8_t *const data, const i
     memcpy(prev_keys, &kb_report->key, HID_KEYBOARD_KEY_MAX);
 }
 
-/**
- * @brief USB HID Host Mouse Interface report callback handler
- *
- * @param[in] data    Pointer to input report data buffer
- * @param[in] length  Length of input report data buffer
- */
-static void hid_host_mouse_report_callback(const uint8_t *const data, const int length)
-{
-    hid_mouse_input_report_boot_t *mouse_report = (hid_mouse_input_report_boot_t *)data;
-
-    if (length < sizeof(hid_mouse_input_report_boot_t)) {
-        return;
-    }
-
-    static int x_pos = 0;
-    static int y_pos = 0;
-
-    // Calculate absolute position from displacement
-    x_pos += mouse_report->x_displacement;
-    y_pos += mouse_report->y_displacement;
-
-    hid_print_new_device_report_header(HID_PROTOCOL_MOUSE);
-
-    printf("X: %06d\tY: %06d\t|%c|%c|\r",
-           x_pos, y_pos,
-           (mouse_report->buttons.button1 ? 'o' : ' '),
-           (mouse_report->buttons.button2 ? 'o' : ' '));
-    fflush(stdout);
-}
 
 /**
  * @brief USB HID Host Generic Interface report callback handler
@@ -386,8 +300,6 @@ void hid_host_interface_callback(hid_host_device_handle_t hid_device_handle,
         if (HID_SUBCLASS_BOOT_INTERFACE == dev_params.sub_class) {
             if (HID_PROTOCOL_KEYBOARD == dev_params.proto) {
                 hid_host_keyboard_report_callback(data, data_length);
-            } else if (HID_PROTOCOL_MOUSE == dev_params.proto) {
-                hid_host_mouse_report_callback(data, data_length);
             }
         } else {
             hid_host_generic_report_callback(data, data_length);
